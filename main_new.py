@@ -37,8 +37,6 @@ class Wid_label():
 # Глобальная переменная для передачи данных между функциями
 global_data_rmc = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
 global_data_gll = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
-port_num = 'COM7'
-baud_rate = 9600
 
 # Обертка для функций-потоков
 def potok (my_func):
@@ -52,13 +50,9 @@ def potok (my_func):
 def read_put():
     global global_data_rmc
     global global_data_gll
-    global port_num
-    global baud_rate
     try:
-        gnss = serial.Serial(port_num, baudrate=baud_rate)
+        gnss = serial.Serial('COM7', baudrate=9600)
         print('Подключение GNSS выполнено')
-        connect.set(port_num + ', ' + str(baud_rate))
-        connect.set_color('green')
         while True:
             ser_bytes = gnss.readline()
             decoded_bytes = ser_bytes.decode('utf-8')
@@ -80,14 +74,7 @@ def read_put():
                 gnss_file_gll.close()
     except serial.SerialException:
         print('Ошибка подключения GNSS')
-        connect.set('')
-        connect.set_color('red')
-        time_clock.set('Нет данных')
-        latitude.set('Нет данных')
-        longtitude.set('Нет данных')
-        reliability.set('Нет данных')
-        reliability.set_color(root.cget('bg'))
-
+        pass
 
 # Функция вычисления Широты
 def get_lat(data):
@@ -128,28 +115,42 @@ def get_time(data):
 @potok
 def out_form():
     global global_data_rmc
+    data_lat = '0'
+    data_long = '0'
+    data_time = '0'
+    while True:
+        if global_data_rmc[2] == 'A':
+            data_lat = get_lat(global_data_rmc[3])
+            data_long = get_long(global_data_rmc[5])
+            data_time = get_time(global_data_rmc[1])
+        latitude.set(data_lat)
+        longtitude.set(data_long)
+        time_clock.set(data_time)
+        reliability.set('Достоверно')
+        reliability.set_color('green')
+        if global_data_rmc[2] == 'V':
+            reliability.set('Не достоверно')
+            reliability.set_color('red')
+        sleep(.5)
+
+# Поток обработки и вывода в форму
+@potok
+def out_form_gll():
     global global_data_gll
     data_lat = '0'
     data_long = '0'
     data_time = '0'
     while True:
-        if global_data_rmc[2] == 'V':
-            reliability.set('Не достоверно')
-            reliability.set_color('red')
-        if global_data_rmc[2] == 'A':
-            reliability.set('Достоверно')
-            reliability.set_color('green')
-        if global_data_gll[0] == '$GNGLL':
-            data_lat = get_lat(global_data_gll[1])
-            data_long = get_long(global_data_gll[3])
-            data_time = get_time(global_data_gll[5])
-            latitude.set(data_lat)
-            longtitude.set(data_long)
-            time_clock.set(data_time)
+        data_lat = get_lat(global_data_gll[1])
+        data_long = get_long(global_data_gll[3])
+        data_time = get_time(global_data_gll[5])
+        latitude_gll.set(data_lat)
+        longtitude_gll.set(data_long)
+        time_clock_gll.set(data_time)
         sleep(.5)
 
 # Запускаем поток read_put в фоне
-
+read_put()
 
 root = tk.Tk()
 root_w = 1024
@@ -160,10 +161,10 @@ root.title('GNSS WRITER')
 root.geometry(root_size)
 root.resizable(0, 0)
 
-# Поля данных GNSS
+# Поля данных RMC
 data_type = Wid_label(name = 'Тип данных: ', x = 10, y = 10)
 data_type.creat()
-data_type.set('GNGLL')
+data_type.set('RMC')
 
 time_clock = Wid_label(name = 'Время (UTC): ', x = 10, y = 40)
 time_clock.creat()
@@ -177,11 +178,21 @@ longtitude.creat()
 reliability = Wid_label(name = 'Достоверность: ', x = 10, y = 130)
 reliability.creat()
 
-connect = Wid_label(name = 'Подключение: ', x = 10, y = 160)
-connect.creat()
+# Поля данных GLL
+data_type_gll = Wid_label(name = 'Тип данных: ', x = 400, y = 10)
+data_type_gll.creat()
+data_type_gll.set('GLL')
 
-read_put()
+time_clock_gll = Wid_label(name = 'Время (UTC): ', x = 400, y = 40)
+time_clock_gll.creat()
+
+latitude_gll = Wid_label(name = 'Широта: ', x = 400, y = 70)
+latitude_gll.creat()
+
+longtitude_gll = Wid_label(name = 'Долгота: ', x = 400, y = 100)
+longtitude_gll.creat()
 
 out_form()
+out_form_gll()
 
 root.mainloop()
