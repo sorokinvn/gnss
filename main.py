@@ -30,11 +30,11 @@ class Wid_label():
         self.color = color
         self.lb_value_wid.config(background = self.color)
 
-
-
 # Глобальная переменная для передачи данных между функциями
 global_data_rmc = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
 global_data_gll = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+
+# Настройки порта
 port_num = 'COM7'
 baud_rate = 9600
 
@@ -54,14 +54,12 @@ def read_put():
     global baud_rate
     try:
         gnss = serial.Serial(port_num, baudrate=baud_rate)
-        print('Подключение GNSS выполнено')
-        connect.set(port_num + ', ' + str(baud_rate))
         connect.set_color('green')
         while True:
             ser_bytes = gnss.readline()
             decoded_bytes = ser_bytes.decode('utf-8')
             data = decoded_bytes.split(',')
-            if data[0] == '$GNRMC':
+            if data[0] == '$GNRMC' and data[1] != '':
                 print(data)
                 global_data_rmc = data
                 data = str(data)
@@ -69,7 +67,7 @@ def read_put():
                 gnss_file_rmc.write(data + '\n')
                 gnss_file_rmc.close()
 
-            if data[0] == '$GNGLL':
+            if data[0] == '$GNGLL' and data[5] != '':
                 print(data)
                 global_data_gll = data
                 data = str(data)
@@ -77,50 +75,58 @@ def read_put():
                 gnss_file_gll.write(data + '\n')
                 gnss_file_gll.close()
     except serial.SerialException:
-        print('Ошибка подключения GNSS')
-        connect.set('')
         connect.set_color('red')
         time_clock.set('Нет данных')
         latitude.set('Нет данных')
         longtitude.set('Нет данных')
         reliability.set('Нет данных')
         reliability.set_color(root.cget('bg'))
+    read_put()
 
 
 # Функция вычисления Широты
 def get_lat(data):
-    lat = str(data)
-    lat_d = lat[:2]
-    if lat_d[0] == '0':
-        lat_d = lat_d[1:2]
-    lat_m = lat[2:10]
-    if lat_m[0] == '0':
-        lat_m = lat_m[1:8]
-    lat_m = str(float(lat_m)/60)[1:8]
-    return lat_d + lat_m
+    if data == '':
+        return str(0)
+    else:
+        lat = str(data)
+        lat_d = lat[:2]
+        if lat_d[0] == '0':
+            lat_d = lat_d[1:2]
+        lat_m = lat[2:10]
+        if lat_m[0] == '0':
+            lat_m = lat_m[1:8]
+        lat_m = str(float(lat_m)/60)[1:8]
+        return lat_d + lat_m
 
 # Функция вычисления Долготы
 def get_long(data):
-    long_d = data[:3]
-    if long_d[0] == '0':
-        long_d = long_d[1:3]
-    if long_d[0] == '0' and long_d[1] == '0':
-        long_d = long_d[2:3]
-    long_m = data[3:11]
-    if long_m[0] == '0':
-        long_m = long_m[1:8]
-    long_m = str(float(long_m) / 60)[1:8]
-    return long_d + long_m
+    if data == '':
+        return str(0)
+    else:
+        long_d = data[:3]
+        if long_d[0] == '0':
+            long_d = long_d[1:3]
+        if long_d[0] == '0' and long_d[1] == '0':
+            long_d = long_d[2:3]
+        long_m = data[3:11]
+        if long_m[0] == '0':
+            long_m = long_m[1:8]
+        long_m = str(float(long_m) / 60)[1:8]
+        return long_d + long_m
 
 # Функция вычисления Времени UTC
 def get_time(data):
-    hh = '00'
-    mm = '00'
-    ss = '00'
-    hh = data[:2]
-    mm = data[2:4]
-    ss = data[4:6]
-    return hh + ':' + mm + ':' + ss
+    if data == '':
+        return str(0)
+    else:
+        hh = '00'
+        mm = '00'
+        ss = '00'
+        hh = data[:2]
+        mm = data[2:4]
+        ss = data[4:6]
+        return hh + ':' + mm + ':' + ss
 
 # Поток обработки и вывода в форму
 @potok
@@ -154,7 +160,7 @@ root_w = 1024
 root_h = 768
 root_size = str(root_w) + 'x' + str(root_h)
 root.iconbitmap('image/icon.ico')
-root.title('GNSS WRITER')
+root.title('GNSS IL-114')
 root.geometry(root_size)
 root.resizable(0, 0)
 
@@ -177,6 +183,7 @@ reliability.creat()
 
 connect = Wid_label(name = 'Подключение: ', x = 10, y = 160)
 connect.creat()
+connect.set(port_num + ', ' + str(baud_rate))
 
 read_put()
 
