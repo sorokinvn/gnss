@@ -147,8 +147,8 @@ def out_form():
             data_lat = get_lat(global_data_gll[1])
             data_long = get_long(global_data_gll[3])
             data_time = get_time(global_data_gll[5])
-            latitude.set(data_lat)
-            longtitude.set(data_long)
+            latitude.set(data_lat + '  ' + global_data_gll[2])
+            longtitude.set(data_long + '  ' + global_data_gll[4])
             time_clock.set(data_time)
         sleep(.5)
 
