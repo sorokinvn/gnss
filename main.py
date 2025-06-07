@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from time import sleep
+from tkinter import *
+from tkinter import ttk
 import tkinter as tk
 from thread import Thread
 from unit_ui import Wid_label
@@ -8,7 +10,10 @@ from unit_nmea import read_put
 from unit_nmea import get_lat
 from unit_nmea import get_long
 from unit_nmea import get_time
-import  unit_nmea
+from unit_nmea import get_port_list
+import unit_nmea
+
+global thread_01, thread_02
 
 # Функция обработки и вывода в форму
 def out_form():
@@ -40,6 +45,22 @@ def out_form():
             connect.set('Отключено')
             connect.set_color('red')
 
+def select_port():
+    global thread_01, thread_02
+    unit_nmea.num_port = cb_com_value.get()
+    thread_01 = Thread(read_put)
+    thread_02 = Thread(out_form)
+    thread_01.start()
+    thread_02.start()
+
+def un_select_port():
+    global thread_01, thread_02
+    unit_nmea.thread_01_stop = False
+    thread_01.kill()
+    thread_02.kill()
+    thread_01.join()
+    thread_02.join()
+
 root = tk.Tk()
 root_w = 1024
 root_h = 768
@@ -69,13 +90,15 @@ reliability.creat()
 connect = Wid_label(name = 'Подключение: ', x = 10, y = 160, root = root)
 connect.creat()
 
-thread_01 = Thread(read_put)
-thread_01.start()
+cb_com_value = StringVar()
+cb_com = ttk.Combobox(root, values = get_port_list(), width = 10, state = 'readonly', textvariable = cb_com_value)
+cb_com.place(x = 350, y = 10)
+cb_com.current(0)
 
-thread_02 = Thread(out_form)
-thread_02.start()
+bt_connect = tk.Button(root, text = 'Подключить', width = 10, command = select_port)
+bt_connect.place(x = 350, y = 40)
 
+bt_dis_connect = tk.Button(root, text = 'Отключить', width = 10, command = un_select_port)
+bt_dis_connect.place(x = 350, y = 70)
 
 root.mainloop()
-thread_01.kill()
-thread_02.kill()

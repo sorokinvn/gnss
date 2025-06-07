@@ -1,22 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from time import sleep
+
+from serial.tools import list_ports
 import serial
+
 
 # Глобальная переменная для передачи данных между функциями
 data_rmc = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
 data_gll = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
 con_port = True
+thread_01_stop = False
+num_port = ''
+
+# Функция получения списка портов на устройстве
+def get_port_list():
+    port_list = []
+    ports = serial.tools.list_ports.comports()
+    for port, desc, hwid in sorted(ports):
+        port_list.append(port)
+    return port_list
 
 # Функция считывания из порта, отправки на обработку и записи в файл
 def read_put():
     global data_rmc, data_gll
+    global thread_01_stop
+    global num_port
+    thread_01_stop = True
     try:
-        gnss = serial.Serial('COM7', 9600)
-        while True:
+        gnss = serial.Serial(str(num_port), 9600)
+        while thread_01_stop:
             con_port = True
             ser_bytes = gnss.readline()
             decoded_bytes = ser_bytes.decode('utf-8')
             data = decoded_bytes.split(',')
+            print(data)
             if data[0] == '$GNRMC' and data[1] != '':
                 data_rmc = data
                 data = str(data)
@@ -31,8 +49,7 @@ def read_put():
                 gnss_file_gll.write(data + '\n')
                 gnss_file_gll.close()
     except serial.SerialException:
-        con_port = False
-        read_put()
+        print ('Ошибка порта')
 
 # Функция вычисления Широты
 def get_lat(data):

@@ -27,5 +27,7 @@ class Wid_label():
         self.color = color
         self.lb_value_wid.config(background = self.color)
 
+
+
 if __name__ == "__main__":
     pass
