@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from time import sleep
 
 from serial.tools import list_ports
 import serial
 
-
 # Глобальная переменная для передачи данных между функциями
 data_rmc = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
-data_gll = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
 con_port = True
 thread_01_stop = False
 num_port = ''
+time_now = ''
 
 # Функция получения списка портов на устройстве
 def get_port_list():
@@ -26,30 +24,25 @@ def read_put():
     global data_rmc, data_gll
     global thread_01_stop
     global num_port
+    global con_port
+    global time_now
     thread_01_stop = True
     try:
-        gnss = serial.Serial(str(num_port), 9600)
+        gnss = serial.Serial(str(num_port), 115200)
         while thread_01_stop:
             con_port = True
             ser_bytes = gnss.readline()
             decoded_bytes = ser_bytes.decode('utf-8')
             data = decoded_bytes.split(',')
-            print(data)
             if data[0] == '$GNRMC' and data[1] != '':
                 data_rmc = data
                 data = str(data)
-                gnss_file_rmc = open('gnss_rmc.txt', 'a')
+                gnss_file_rmc = open('gnss_rmc_' + time_now + '.txt', 'a')
                 gnss_file_rmc.write(data + '\n')
                 gnss_file_rmc.close()
-
-            if data[0] == '$GNGLL' and data[5] != '':
-                data_gll = data
-                data = str(data)
-                gnss_file_gll = open('gnss_gll.txt', 'a')
-                gnss_file_gll.write(data + '\n')
-                gnss_file_gll.close()
+        con_port = False
     except serial.SerialException:
-        print ('Ошибка порта')
+        con_port = False
 
 # Функция вычисления Широты
 def get_lat(data):

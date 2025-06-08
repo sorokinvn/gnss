@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from datetime import datetime
 from time import sleep
 from tkinter import *
 from tkinter import ttk
@@ -13,23 +14,23 @@ from unit_nmea import get_time
 from unit_nmea import get_port_list
 import unit_nmea
 
-global thread_01, thread_02
 
 # Функция обработки и вывода в форму
 def out_form():
     data_lat = '0'
     data_long = '0'
     data_time = '0'
+
     while True:
         data_rmc = unit_nmea.data_rmc
-        data_gll = unit_nmea.data_gll
         con_port = unit_nmea.con_port
-        if data_gll[0] == '$GNGLL':
-            data_lat = get_lat(data_gll[1])
-            data_long = get_long(data_gll[3])
-            data_time = get_time(data_gll[5])
-            latitude.set(data_lat + '  ' + data_gll[2])
-            longtitude.set(data_long + '  ' + data_gll[4])
+        if data_rmc[0] == '$GNRMC':
+            data_lat = get_lat(data_rmc[3])
+            data_long = get_long(data_rmc[5])
+            data_time = get_time(data_rmc[1])
+            data_type.set(data_rmc[0])
+            latitude.set(data_lat + '  ' + data_rmc[4])
+            longtitude.set(data_long + '  ' + data_rmc[6])
             time_clock.set(data_time)
         if data_rmc[2] == 'A':
             reliability.set('OK')
@@ -37,30 +38,36 @@ def out_form():
         if data_rmc[2] == 'V':
             reliability.set('No')
             reliability.set_color('red')
-        sleep(.3)
-        if con_port == True:
+        sleep(.1)
+        if unit_nmea.con_port == True:
             connect.set('Подключено')
             connect.set_color('green')
-        if con_port == False:
+        if unit_nmea.con_port == False:
+            unit_nmea.data_rmc = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+            reliability.set('')
+            reliability.set_color(root.cget('bg'))
             connect.set('Отключено')
             connect.set_color('red')
+            data_type.set('')
+            latitude.set('')
+            longtitude.set('')
+            time_clock.set('')
 
+#Процедура кнопки Подключить
 def select_port():
-    global thread_01, thread_02
     unit_nmea.num_port = cb_com_value.get()
-    thread_01 = Thread(read_put)
-    thread_02 = Thread(out_form)
+    dt = datetime.now()
+    unit_nmea.time_now = str(dt.year) + '_' +  str(dt.month) + '_' + str(dt.day) + '_' + str(dt.hour) + '_' + str(dt.minute) + '_' + str(dt.second)
+    thread_01 = Thread(target = read_put, daemon = True)
+    thread_02 = Thread(target = out_form, daemon = True)
     thread_01.start()
     thread_02.start()
 
+#Процедура кнопки Отключить
 def un_select_port():
-    global thread_01, thread_02
     unit_nmea.thread_01_stop = False
-    thread_01.kill()
-    thread_02.kill()
-    thread_01.join()
-    thread_02.join()
 
+#Гоавный цикл окна программы
 root = tk.Tk()
 root_w = 1024
 root_h = 768
@@ -73,7 +80,6 @@ root.resizable(0, 0)
 # Поля данных GNSS
 data_type = Wid_label(name = 'Тип данных: ', x = 10, y = 10, root = root)
 data_type.creat()
-data_type.set('GNGLL')
 
 time_clock = Wid_label(name = 'Время (UTC): ', x = 10, y = 40, root = root)
 time_clock.creat()
