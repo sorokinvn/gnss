@@ -32,11 +32,10 @@ class Wid_label():
 
 # Глобальная переменная для передачи данных между функциями
 global_data_rmc = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
-global_data_gll = ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
 
 # Настройки порта
-port_num = 'COM7'
-baud_rate = 9600
+port_num = 'COM9'
+baud_rate = 115200
 
 # Обертка для функций-потоков
 def potok (my_func):
@@ -49,7 +48,6 @@ def potok (my_func):
 @potok
 def read_put():
     global global_data_rmc
-    global global_data_gll
     global port_num
     global baud_rate
     try:
@@ -66,14 +64,6 @@ def read_put():
                 gnss_file_rmc = open('gnss_rmc.txt', 'a')
                 gnss_file_rmc.write(data + '\n')
                 gnss_file_rmc.close()
-
-            if data[0] == '$GNGLL' and data[5] != '':
-                print(data)
-                global_data_gll = data
-                data = str(data)
-                gnss_file_gll = open('gnss_gll.txt', 'a')
-                gnss_file_gll.write(data + '\n')
-                gnss_file_gll.close()
     except serial.SerialException:
         connect.set_color('red')
         time_clock.set('Нет данных')
@@ -132,7 +122,6 @@ def get_time(data):
 @potok
 def out_form():
     global global_data_rmc
-    global global_data_gll
     data_lat = '0'
     data_long = '0'
     data_time = '0'
@@ -143,12 +132,12 @@ def out_form():
         if global_data_rmc[2] == 'A':
             reliability.set('Достоверно')
             reliability.set_color('green')
-        if global_data_gll[0] == '$GNGLL':
-            data_lat = get_lat(global_data_gll[1])
-            data_long = get_long(global_data_gll[3])
-            data_time = get_time(global_data_gll[5])
-            latitude.set(data_lat + '  ' + global_data_gll[2])
-            longtitude.set(data_long + '  ' + global_data_gll[4])
+        if global_data_rmc[0] == '$GNRMC':
+            data_lat = get_lat(global_data_rmc[3])
+            data_long = get_long(global_data_rmc[5])
+            data_time = get_time(global_data_rmc[1])
+            latitude.set(data_lat + '  ' + global_data_rmc[4])
+            longtitude.set(data_long + '  ' + global_data_rmc[6])
             time_clock.set(data_time)
         sleep(.5)
 
@@ -190,3 +179,4 @@ read_put()
 out_form()
 
 root.mainloop()
+
